@@ -1,8 +1,8 @@
 import asyncio
 import argparse
 import aiofiles
-import aiofiles.os
-import os
+import aiofiles.os # Цей імпорт все ще потрібен для aiofiles.os.makedirs
+import os # Тепер os імпортується для os.walk
 import logging
 from pathlib import Path
 
@@ -16,7 +16,8 @@ async def read_folder(source_path: Path, output_path: Path):
     """
     tasks = []
     try:
-        async for root, dirs, files in aiofiles.os.walk(source_path):
+        # Використовуємо asyncio.to_thread для запуску синхронної os.walk в окремому потоці
+        for root, dirs, files in await asyncio.to_thread(os.walk, source_path):
             for file in files:
                 source_file_path = Path(root) / file
                 tasks.append(asyncio.create_task(copy_file(source_file_path, output_path)))
@@ -31,18 +32,17 @@ async def copy_file(source_file_path: Path, output_path: Path):
     try:
         file_extension = source_file_path.suffix.lstrip('.').lower()
         if not file_extension:
-            # Обробка файлів без розширення (наприклад, 'Makefile', '.bashrc')
             destination_folder = output_path / "no_extension"
         else:
             destination_folder = output_path / file_extension
 
-        await aiofiles.os.makedirs(destination_folder, exist_ok=True)
+        await aiofiles.os.makedirs(destination_folder, exist_ok=True) # Використання aiofiles.os.makedirs
         destination_file_path = destination_folder / source_file_path.name
 
         async with aiofiles.open(source_file_path, 'rb') as src:
             async with aiofiles.open(destination_file_path, 'wb') as dest:
                 while True:
-                    chunk = await src.read(4096)  # Читаємо по 4KB
+                    chunk = await src.read(4096)
                     if not chunk:
                         break
                     await dest.write(chunk)
