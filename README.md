@@ -14,8 +14,8 @@
 
     python word_analyzer.py
 
-![](top_words.png)
-
 
 ------------
 
+
+![](top_words.png)
